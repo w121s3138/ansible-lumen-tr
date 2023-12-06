@@ -299,3 +299,306 @@ ansible modules :
 ansible playbook
 
 ```
+
+
+
+```
+
+playbooks (.yaml/yml) -- workflow of ansible
+
+  plays ,,,
+    
+     tasks
+
+
+
+vi xyz.yml
+
+- hosts: webservers
+  remote_user: yourname
+  become: yes
+  become_user: postgres
+  tasks 
+  -- installing pckage
+  -- starting
+
+v   
+
+
+
+---
+
+
+- hosts: appservers
+  remote_user: yourname
+  become: yes
+  become_user: postgres
+  tasks 
+
+
+  dfb
+b  bgn
+
+
+
+
+
+
+-------------------------------------------------------------
+
+
+[root@main raman]# cat target.yml
+---
+- hosts: demo
+  user: centos
+  become: yes
+  connection: ssh
+  gather_facts: yes
+[root@main raman]# cat tasks.yml
+---
+- hosts: demo
+#  user: centos
+#  become: yes
+#  connection: ssh
+#  gather_facts: yes
+  tasks:
+  - name: installation of httpd
+    action: yum name=httpd state=absent
+  - name: addition of file
+    action: file path=/opt/testdir state=directory
+#Lab5: Working with Playbook
+  - name: group creation
+    group:
+      name: grouptest
+      gid: 5555
+  - name: second group creation
+    group:
+      name: grouptest2
+      gid: 6666
+
+
+
+
+ansible -h
+  273  clear
+  274  ls
+  275  vi target.yml
+  276  ls
+  277  ansible-playbook -i inv target.yml
+  278  vi target.yml
+  279  cat inv
+  280  ansible -m ping -i inv -u centos -b
+  281*
+  282  ls
+  283  cd /root/.ssh/
+  284  ls
+  285  cat known_hosts
+  286  clea
+  287  clear
+  288  vi raman.pem
+  289  cd /root/raman/
+  290  ls
+  291  vi raman.pem
+  292  ls
+  293  ansible -m ping -i inv -u centos -b --private-key raman.pem
+  294  ansible demo -m ping -i inv -u centos -b --private-key raman.pem
+  295  chmod 400 raman.pem
+  296  ansible demo -m ping -i inv -u centos -b --private-key raman.pem
+  297  clear
+  298  ansible-playbook -i inv --private-key raman.pem target.yml
+  299  cat target.yml
+  300  clear
+  301  cat target.yml
+  302  vi tasks.yml
+  303  ansible-playbook -i inv --private-key raman.pem tasks.yml
+  304  vi tasks
+  305  vi tasks.yml
+  306  vi /etc/ansible/ansible.cfg
+  307  vi tasks.yml
+  308  ansible-playbook -i inv tasks.yml
+  309  vi tasks.yml
+  310  ansible-playbook -i inv tasks.yml
+  311  cat tasks
+  312  cat tasks.yml
+  313  clear
+  314  vi tasks.yml
+  315  ansible-playbook -i inv tasks.yml
+  316  cat tasks.yml
+  317  vi tasks.yml
+  318  clear
+  319  ansible-playbook -i inv tasks.yml
+  320  vi tasks.yml
+  321  ansible-playbook -i inv tasks.yml
+  322  vi tasks.yml
+  323  ansible-playbook -i inv tasks.yml
+  324  vi tasks.yml
+  325  ansible-playbook -i inv tasks.yml
+  326  clear
+  327  vi tasks.yml
+  328  ansible-playbook -i inv tasks.yml
+
+
+---
+
+
+
+lab6:
+
+Create a Playbook for User and Group Creation with user name "usertest", shell bash, userid 6666 and pass the comments as "my first user". Group details will be name "grouptest" and group id 7777.
+
+Create a Playbook for files and directories:
+create a directory with root ownership; inside this directory, create one file with “test” with ownership of usertest (the user we have created in 1st example). Copy some content into the newly created file.
+
+
+
+[root@main raman]# cat lab6.yml
+---
+- name: create user ,group, file and dir
+  hosts: demo
+  become: yes
+  tasks:
+  - name: create a group
+    group: name=grouptest gid=7777 state=present
+  - name: create a user
+    user: name=usertest shell=/bin/bash state=present comment="my first user" uid=6666 group=grouptest
+
+  - name: create a directory
+    file: path=/tmp/rktest state=directory owner=root group=root mode=0755
+  - name: create a file and copy some content
+    copy:
+      content: "This is the file created with copy. "
+      dest: /tmp/rktest/rktestfile
+      owner: usertest
+      group: grouptest
+      mode: 0644
+
+
+
+
+
+ ansible-playbook -i inv lab6.yml --check
+  364  ansible-playbook -i inv lab6.yml
+
+
+
+
+
+-------------------------------
+handlers :
+
+
+
+
+
+
+1
+2    made some change (hndlers) ,notify
+3
+4
+5
+6
+7
+
+
+handlers( operation)
+
+
+[root@main raman]# cat ntp.yml
+- hosts: all
+  tasks:
+  - name: ntp os package instalation
+    package: name=ntp state=present
+  - name: ntp file configurations
+    file: path=/etc/ntp.conf state=file
+  - name: to start ntp svc
+    service: name=ntpd state=started enabled=yes  
+
+
+
+
+
+[root@main raman]# cat ntp.yml
+- hosts: all
+  tasks:
+  - name: ntp os package instalation
+    package: name=ntp state=present
+  - name: ntp file configurations
+    file: path=/etc/ntp.conf state=file
+    notify:
+    - restart the ntp svc on changes in ntp configuration
+  - name: to start ntp svc
+    service: name=ntpd state=started enabled=yes
+  handlers:
+  - name: restart the ntp svc on changes in ntp configuration
+    service: name=ntpd state=restarted
+
+
+
+[root@main raman]# cat ntp.yml
+- hosts: all
+  tasks:
+  - name: ntp os package instalation
+    package: name=ntp state=present
+  - name: ntp file config from my local to remote dest
+    copy: src=./ntp.conf dest=/etc/ntp.conf
+    notify:
+    - restart the ntp svc on changes in ntp configuration
+  - name: to start ntp svc
+    service: name=ntpd state=started enabled=yes
+  handlers:
+  - name: restart the ntp svc on changes in ntp configuration
+    service: name=ntpd state=restarted
+
+
+----
+
+
+vi ntp.yml
+  373  ls
+  374  ansible-playbook -i inv lab6.yml--syntax-check
+  375  ansible-playbook -i inv ntp.yml --syntax-check
+  376  vi ntp.yml
+  377  ansible-playbook -i inv ntp.yml --check
+  378  ansible-playbook -i inv ntp.yml
+  379  clear
+  380  vi ntp.yml
+  381  cat ntp.yml
+  382  clear
+  383  ansible-playbook -i inv ntp.yml
+  384  vi ntp.yml
+  385  cat ntp.yml
+  386  ansible-playbook -i inv ntp.yml
+  387  ls
+  388  vi ntp.conf
+  389  ansible-playbook -i inv ntp.yml
+  390  vi ntp.yml
+  391  vi ntp.conf
+  392  ansible-playbook -i inv ntp.yml
+  393  cat ntp.
+  394  cat ntp.yml
+  395  ansible-doc -v package
+  396  clear
+  397  cat ntp.yml
+  398  cat ntp.conf
+  399  ansible-playbook -i inv ntp.yml
+  400  cat ntp.conf
+  401  vi ntp.conf
+  402  ansible-playbook -i inv ntp.yml
+
+Handlers primary use cases is to restart services, handlers can serve various purposes beyond service restarts, such as:
+
+Configuration file updates: After modifying a configuration file, a handler can be used to trigger a service reload or restart to apply the changes.
+
+Package installations: After installing new packages, a handler can be used to restart services or perform further configuration updates that depend on the installed packages.
+
+Restarting servers: Handlers can be employed to restart servers or perform maintenance activities on servers after specific configurations or changes have been applied.
+
+Sending notifications: They can be used to trigger notifications, such as sending emails or messages to alert administrators or users about changes or tasks completion.
+
+Managing firewall rules: Handlers can be used to reload firewall configurations or restart firewalls after applying rule changes.
+
+Deployments and updates: After deploying or updating an application, handlers can be used to execute tasks like clearing caches, reloading configurations, or restarting services.
+
+Database operations: Performing database-related tasks such as schema updates, reloading configurations, or restarting the database service.
+
+```
