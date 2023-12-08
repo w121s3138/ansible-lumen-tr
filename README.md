@@ -602,3 +602,250 @@ Deployments and updates: After deploying or updating an application, handlers ca
 Database operations: Performing database-related tasks such as schema updates, reloading configurations, or restarting the database service.
 
 ```
+
+
+
+
+
+```
+
+[root@main raman]# cat variable.yml
+---
+- hosts: demo
+  connection: ssh
+  vars:
+#    pkg: tree
+    pkg: httpd
+  tasks:
+  - name: installation of tree/yum pkg
+    yum: name={{ pkg }} state=installed
+
+
+
+
+ansible-playbook -i inv variable.yml --syntax-check
+  419  ansible-playbook -i inv variable.yml --check
+  420  ansible-playbook -i inv variable.yml
+  421  vi variable.yml
+  422  ansible-playbook -i inv variable.yml
+  423  vi variable.yml
+  424  ansible-playbook -i inv variable.yml
+
+
+--------------------------------------------
+
+[root@main raman]# cat variable.yml
+---
+- hosts: demo
+  connection: ssh
+  vars:
+#    pkg: tree
+    pkg: httpd
+    us1: gagan2
+    uid1: ""
+    us2: raman
+    uid2: 8765
+  tasks:
+  - name: installation of tree/yum pkg
+    yum: name={{ pkg }} state=installed
+  - name: creating user1
+    user: name={{ us1 }} uid={{ uid1 }}
+  - name: creating user2
+    user: name={{ us2 }} uid={{ uid2 }}
+
+
+
+ ansible-playbook -i inv variable.yml -e uid1=8764
+  446  vi variable.yml
+  447  ansible-playbook -i inv variable.yml -e uid1=8763
+  448  vi variable.yml
+  449  cat variable.yml
+
+
+------------------------------------
+
+
+- hosts: all
+  vars:
+    pkg: ntp
+    svc: ntpd
+  tasks:
+  - name: installing {{ pkg }}
+    package:
+      name: "{{ pkg }}"
+      state: installed
+  - name: file {{ pkg }} config from my local to remote dest
+    copy: src=./ntp.conf dest=/etc/ntp.conf
+    notify:
+    - restarthandler
+  - name: to start {{ pkg }} {{ svc }}
+    service: name="{{ svc }}" state=started enabled=yes
+  - name: configuration successfully done on hosts
+    debug: msg="Playbook ran successfully on host {{ ansible_hostname }}"
+  handlers:
+  - name: restarthandler
+    service: name="{{ svc }}" state=restarted
+
+
+
+
+vi ntp.yml
+  486  clear
+  487  ansible -i inv -m setup -a "filter=ansible_hostname"
+  488  ansible demo -i inv -m setup -a "filter=ansible_hostname"
+  489  vi ntp.yml
+  490  clear
+  491  ansible-playbook -i inv ntp.yml
+  492  vi ntp.conf
+  493  ansible-playbook -i inv ntp.yml
+  494  clear
+
+
+------------------------------------------------------
+
+[root@main raman]# cat lab8.yml
+---
+- hosts: all
+  vars:
+    httpd_package: httpd
+  tasks:
+  - name: install httpd package
+    package:
+      name: "{{httpd_package}}"
+      state: present
+  - name: start httpd service
+    service:
+      name: httpd
+      state: started
+  - name: config appache config port change
+    lineinfile:
+      path: /etc/httpd/conf/httpd.conf
+      regexp: "Listen 80"
+      line: "Listen 81"
+  - name: add static config to servers
+    copy:
+      dest: /var/www/html/index.html
+      content: "<h1> this is a demo for apache webserver hosted on {{ ansible_hostname }} and of os : {{ ansible_os_family }} !</h1>"
+    notify: restart httpd
+  handlers:
+  - name: restart httpd
+    service:
+      name: httpd
+      state: restarted
+      enabled: yes
+
+[root@main raman]# cat lab8.1.yml --- -... by Raman Khanna
+12:26 PM
+Raman Khanna
+[root@main raman]# cat lab8.1.yml
+---
+- hosts: all
+  vars:
+    httpd_package: httpd
+  tasks:
+  - name: install httpd package
+    package:
+      name: "{{httpd_package}}"
+      state: present
+  - name: start httpd service
+    service:
+      name: httpd
+      state: started
+  - name: config appache config port change
+    lineinfile:
+      path: /etc/httpd/conf/httpd.conf
+      regexp: "Listen 80"
+      line: "Listen 81"
+  - name: add static config to servers
+    template:
+      src: index.html
+      dest: /var/www/html/index.html
+    notify: restart httpd
+  handlers:
+  - name: restart httpd
+    service:
+      name: httpd
+      state: restarted
+      enabled: yes
+
+[root@main raman]# cat index.html <html> <h... by Raman Khanna
+12:26 PM
+Raman Khanna
+[root@main raman]# cat index.html
+<html>
+<head>
+<title>Server Information</title>
+</head>
+<body>
+<h1> this is a demo for webserver hosted on {{ ansible_hostname }} and of os : {{ ansible_os_family }} !</h1>
+</body>
+</html>
+
+-------------------------------------------------
+
+
+
+
+[root@main raman]# cat factset.yml
+---
+- name: This is my First Debug Play
+  hosts: all
+  tasks:
+    - name: Testing Ansible Facts {{ ansible_hostname }}
+# My task with outputs fetched from Facts
+      debug: msg="Host {{ ansible_hostname }} is having IP address {{ ansible_eth0.ipv4.address }}"
+    - debug: msg="second task"
+    - debug: msg="system {{ inventory_hostname }} has uuid {{ ansible_product_uuid }}"
+
+
+
+
+
+
+[root@main raman]# cat debug-register.yml
+---
+- name: debug play
+  hosts: all
+  tasks:
+  - name: talk package install
+    yum: name=telnet state=present
+    register: output
+
+  - name: running debugger to show output
+    debug: var=output
+
+
+
+
+[root@main raman]# cat ntp.yml
+- hosts: all
+  vars:
+    pkg: ntp
+    ansible_hostname: ntpd
+  tasks:
+  - name: installing {{ pkg }}
+    package:
+      name: "{{ pkg }}"
+      state: installed
+    register: ntp_out
+  - name: file {{ pkg }} config from my local to remote dest
+    copy: src=./ntp.conf dest=/etc/ntp.conf
+    notify:
+    - restarthandler
+  - name: to start {{ pkg }} {{ ansible_hostname }}
+    service: name="{{ ansible_hostname }}" state=started enabled=yes
+  - name: configuration successfully done on hosts
+    debug: msg="Playbook ran successfully on host {{ ansible_hostname }}"
+  - name: printing complete output
+    debug: var=ntp_out
+  - name: printing specific result for indivod paameter
+    debug: var=ntp_out.changed
+  handlers:
+  - name: restarthandler
+    service: name="{{ ansible_hostname }}" state=restarted
+
+
+
+--------------------------------------------------------------------------
+
+```
