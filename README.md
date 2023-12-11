@@ -849,3 +849,256 @@ Raman Khanna
 --------------------------------------------------------------------------
 
 ```
+
+
+```
+
+ 
+
+
+[root@main raman]# cat ignore_error.yml
+---
+- name: ignore error
+  hosts: demo
+  tasks:
+  - name: error task
+    command: /bin/date12
+    ignore_errors: yes
+  - name: second task
+    service: name=ntpd state=started
+
+
+
+
+
+
+
+
+[root@main raman]# cat ignore2.yml
+- hosts: demo
+  vars:
+    pkg: ntp
+    ansible_hostname: ntpd
+  tasks:
+  - name: task1 - run a command
+#    command: /dev/null
+    command: ls
+    ignore_errors: true
+    register: task1_result
+
+  - name : debug task1 result
+    debug: var=task1_result
+
+  - name: installing {{ pkg }}
+    package:
+      name: "{{ pkg }}"
+      state: installed
+    register: ntp_out
+
+  - name: to start {{ pkg }} {{ ansible_hostname }}
+    service: name="{{ ansible_hostname }}" state=started enabled=yes
+
+  - name: final task - run only if task1 fails
+    debug: msg="this task runs only if task1 fails"
+    when: task1_result.failed
+
+
+
+===================================================================
+
+
+
+
+
+---
+- name: Conditional checks
+  hosts: all
+  tasks:
+    - name: Installing web packages on all centos version 7 servers
+      yum: name=httpd state=installed
+      when: ansible_distribution == “CentOS” and ansible_distribution_major_version == “7”
+
+
+#### dnt try :
+
+ - name: "shut down CentOS 6 and Debian 7 systems"
+    command: /sbin/shutdown -t now
+    when: (ansible_facts['distribution'] == "CentOS" and ansible_facts['distribution_major_version'] == "6") or
+          (ansible_facts['distribution'] == "Debian" and ansible_facts['distribution_major_version'] == "7")
+###
+
+
+
+
+
+
+
+[root@main raman]# cat ntp.yml
+- hosts: demo1
+  vars:
+#    pkg: ntpd
+    pkg: ntp
+    ansible_hostname: ntpd
+  tasks:
+  - name: installing {{ pkg }}
+    package:
+      name: "{{ pkg }}"
+      state: installed
+    ignore_errors: yes
+    register: ntp_out
+  - name: print installation summary
+    debug: var=ntp_out
+#    when: ntp_out.rc != 0
+    when: ntp_out.rc == 0
+  - name: file {{ pkg }} config from my local to remote dest
+    copy: src=./ntp.conf dest=/etc/ntp.conf
+    notify:
+    - restarthandler
+  - name: to start {{ pkg }} {{ ansible_hostname }}
+    service: name="{{ ansible_hostname }}" state=started enabled=yes
+  - name: configuration successfully done on hosts
+    debug: msg="Playbook ran successfully on host {{ ansible_hostname }}"
+  - name: printing complete output
+    debug: var=ntp_out
+  - name: printing specific result for indivod paameter
+    debug: var=ntp_out.changed
+  handlers:
+  - name: restarthandler
+    service: name="{{ ansible_hostname }}" state=restarted
+
+
+
+
+
+
+
+[root@main raman]# cat conditions.yml
+- hosts: all
+  tasks:
+  - name: Register a variable
+    package: name=ntp state=installed
+    register: ntp_out
+    ignore_errors: true
+  - name: debug
+    debug:
+      var: ntp_out
+  - name: Use the variable in conditional statement
+    shell: echo "motd contains the word ansible"
+    when: ntp_out.rc == 0
+    register: echo_output
+
+  - name: Display echoed message
+    debug:
+      var: echo_output.stdout
+
+  - name: Register a variable
+    shell: cat /etc/motd
+    register: motd_contents
+
+  - name: Use the variable in conditional statement
+    shell: echo "motd contains the word hi"
+    when: motd_contents.stdout.find('hi') != -1
+    register: echo_output
+
+  - name: Display echoed message
+    debug:
+      var: echo_output.stdout
+
+
+========================================================================
+
+
+
+
+
+[root@main raman]# cat conditions2.yml
+- name: Conditional checks
+  hosts: all
+  tasks:
+  - name: creation of user
+    user: name=ramanlumen state=present
+    when: ansible_distribution == 'CentOS' and ansible_distribution_version == '7.9'
+    register: user_out
+  - name: false_task
+    debug: var=user_out
+    ignore_errors: true
+    when: user_out.rc == 0
+  - name: creating a file on servers
+    file: path=/tmp/rks state=touch mode=1600
+    when: ansible_distribution == 'Redhat' and ansible_distribution_version == '8'
+
+
+
+
+
+
+
+[root@main raman]# cat loop.yml
+- hosts: all
+  tasks:
+  - name: create multiple users with loop
+    user: name="{{ item }}" state=present shell=/bin/bash
+    loop: [gagan1,gagan2,gagan3,gagan4]
+#   loop:
+#   - gagan1
+#   - gagan2
+  - name: second task loop with condition
+    command: echo {{ item }}
+    loop: [1,3,5,7,8,9]
+    when: item >=2
+
+
+
+
+
+
+[root@main raman]# cat loop2.yml
+- hosts: all
+  tasks:
+  gather_facts: true
+# gather_facts: false
+  tasks:
+  - name: check centos version
+    command: cat /etc/os-release
+    register: centos_version
+  - name: install pckages
+    package: name="{{ item }}" state=present
+    loop: [php,gcc,talk,tree,vim,httpd]
+    when: ansible_distribution == 'CentOS' or ansible_distribution_version == '7.8'
+
+
+
+
+
+
+
+[root@main raman]# cat loop2.yml
+- hosts: all
+  tasks:
+  gather_facts: true
+# gather_facts: false
+  tasks:
+  - name: check centos version
+    command: cat /etc/os-release
+    register: centos_version
+  - name : output centos version
+    debug: var=centos_version
+  - name: install pckages
+    package: name="{{ item }}" state=present
+    loop: [php,gcc,talk,tree,vim,httpd]
+#    when: ansible_distribution == 'CentOS' or ansible_distribution_version == '7.8'
+#    when: centos_version.stdout.find('CentOS Linux 7') != -1
+    when: centos_version.stdout.find('Ubuntu') != -1
+
+
+
+
+
+===================================================================================================
+
+
+
+
+
+
+```
