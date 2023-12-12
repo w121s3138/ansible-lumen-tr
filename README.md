@@ -1102,3 +1102,435 @@ Raman Khanna
 
 
 ```
+
+
+
+```
+
+playbook
+
+play :
+
+set of operations :
+
+block :
+  1 : apply on individual tasks
+  2
+  3
+  4
+  5
+  6
+  7
+ when (any condition)
+rescue: errro handling 
+
+
+
+
+---
+- name: instalation
+  hosts: demo
+  tasks:
+  - name: block run
+    block:
+    - name: installing telnet package
+      yum: name=teln state=installed
+      register: result
+    - name: print output
+      debug: var=res
+    rescue:
+    - name: handle errors
+      debug: msg="an erorr occured while installing telnet pkg"
+    when: ansible_distribution=="CentOS"
+    ignore_errors: false
+  - name: add user
+    user: name=redhtuser state=present
+    when: ansible_distribution=="CentOS"
+
+
+
+========================================================================================
+
+
+ mkdir roles
+  796  cd roles/
+  797  ls
+  798  tree
+  799  ansible-galaxy init ramanrole
+  800  ls
+  801  tree
+  802  clear
+  803  ls
+  804  cd ramanrole/
+  805  ls
+  806  cd tasks/
+  807  s
+  808  ls
+  809  vi main.yml
+  810  cd defaults
+  811  cd ..
+  812  ls
+  813  cd defaults/
+  814  ls
+  815  vi main.yml
+  816  cd ..
+  817  ls
+  818  cd vars/
+  819  ls
+  820  vi main.yml
+  821  tree
+  822  cd ..
+  823  tree
+  824  clear
+  825  ls
+  826  cd ..
+  827  ls
+  828  cd ..
+  829  ls
+  830  cp inv roles/
+  831  cd roles/
+  832  ls
+  833  vi ramanrole.yml
+  834  ls
+  835  ansible-playbook -i inv ramanrole.yml
+
+
+
+
+[root@main roles]# tree
+.
+├── inv
+├── ramanrole
+│   ├── defaults
+│   │   └── main.yml
+│   ├── files
+│   ├── handlers
+│   │   └── main.yml
+│   ├── meta
+│   │   └── main.yml
+│   ├── README.md
+│   ├── tasks
+│   │   └── main.yml
+│   ├── templates
+│   ├── tests
+│   │   ├── inventory
+│   │   └── test.yml
+│   └── vars
+│       └── main.yml
+└── ramanrole.yml
+
+9 directories, 10 files
+
+
+
+
+
+
+[root@ansible-controller role]# cat defaults/main.yml
+---
+# defaults variable file for file for gaganrole
+user:
+  gagandeep
+uid:
+  7654
+
+Note: make sure, not to write "vars" on top.
+
+
+
+
+
+
+[root@ansible-controller role]# cat tasks/main.yml
+---
+# tasks file for gaganrole
+- name: Creating {{user}}
+  user: name={{user}} uid={{uid}} state=present
+  register: outputs
+- name: Checking outputs
+  debug: var=outputs
+
+Note: make sure, not to write "tasks" on top.
+
+
+
+
+
+
+root@ansible-controller playbooks]# cat gaganroletest.yml
+---
+- name: Testing role
+  hosts: all
+
+# Define roles here
+  roles:
+    - gaganrole
+
+
+
+
+
+
+=========================================================================
+
+- hosts: demo1
+  vars:
+#    pkg: ntpd
+    pkg: ntp
+    svc: ntpd
+  tasks:
+  - name: installing {{ pkg }}
+    package:
+      name: "{{ pkg }}"
+      state: installed
+    ignore_errors: yes
+    register: ntp_out
+  - name: print installation summary
+    debug: var=ntp_out
+#    when: ntp_out.rc != 0
+    when: ntp_out.rc == 0
+  - name: file {{ pkg }} config from my local to remote dest
+    copy: src=./ntp.conf dest=/etc/ntp.conf
+    notify:
+    - restarthandler
+  - name: to start {{ pkg }} {{ ansible_hostname }}
+    service: name="{{ svc }}" state=started enabled=yes
+  - name: configuration successfully done on hosts
+    debug: msg="Playbook ran successfully on host {{ ansible_hostname }}"
+  - name: printing complete output
+    debug: var=ntp_out
+  - name: printing specific result for indivod paameter
+    debug: var=ntp_out.changed
+  handlers:
+  - name: restarthandler
+    service: name="{{ ansible_hostname }}" state=restarted
+
+
+
+
+
+
+
+
+http-role :
+
+
+
+
+
+
+- hosts: all
+  vars:
+    httpd_package: httpd
+  tasks:
+  - name: install httpd package
+    package:
+      name: "{{httpd_package}}"
+      state: present
+  - name: start httpd service
+    service:
+      name: httpd
+      state: started
+  - name: config appache config port change
+    lineinfile:
+      path: /etc/httpd/conf/httpd.conf
+      regexp: "Listen 80"
+      line: "Listen 81"
+  - name: add static config to servers
+    template:
+      src: index.html
+      dest: /var/www/html/index.html
+    notify: restart httpd
+  handlers:
+  - name: restart httpd
+    service:
+      name: httpd
+      state: restarted
+      enabled: yes
+
+
+
+
+============================================================================================
+
+
+
+
+[root@main http-role]# cd defaults/
+[root@main defaults]# ls
+main.yml
+[root@main defaults]# cat main.yml
+---
+# defaults file for http-role
+httpd_package: httpd
+
+
+
+
+
+[root@main http-role]# cd handlers/
+[root@main handlers]# ls
+main.yml
+[root@main handlers]# cat main.yml
+---
+# handlers file for http-role
+- name: restart httpd
+  service:
+    name: httpd
+    state: restarted
+    enabled: yes
+
+
+
+
+
+
+[root@main http-role]# cd tasks/
+[root@main tasks]# cat main.yml
+---
+# tasks file for http-role
+  - name: include nested ntp role in this as first task
+    include_role: name=ntp-role
+
+  - name: install httpd package
+    package:
+      name: "{{httpd_package}}"
+      state: present
+  - name: start httpd service
+    service:
+      name: httpd
+      state: started
+  - name: config appache config port change
+    lineinfile:
+      path: /etc/httpd/conf/httpd.conf
+      regexp: "Listen 80"
+      line: "Listen 81"
+  - name: add static config to servers
+    template:
+      src: index.html
+      dest: /var/www/html/index.html
+    notify: restart httpd
+
+
+
+
+
+
+
+[root@main http-role]# cd templates/
+[root@main templates]# cat ma
+cat: ma: No such file or directory
+[root@main templates]# ls
+index.html
+[root@main templates]# cat index.html
+<html>
+  <head>
+    <title>Server Information</title>
+  </head>
+  <body>
+    <h1> this is a demo for webserver hosted on {{ ansible_hostname }} and of os : {{ ansible_os_family }} !</h1>
+</body>
+</html>
+
+
+
+
+
+
+====================================================================
+
+
+
+upload : 
+
+github repository
+
+my content >> link my github repo to ansible galaxy 
+private , public 
+
+
+ ansible-galaxy install geerlingguy.apache
+ 1007  ls
+ 1008  cd /root/.ansible/roles/geerlingguy.apache
+ 1009  ls
+ 1010  cd ..
+ 1011  ls
+ 1012  cd ..
+ 1013  ls
+ 1014  cd roles/
+ 1015  ls
+ 1016  cp /root/raman/inv /root/.ansible/roles/geerlingguy.apache/
+ 1017  ls
+ 1018  cd geerlingguy.apache/
+ 1019  ls
+ 1020  mv inv ..
+ 1021  cd ..
+ 1022  ls
+ 1023  vi role.yml
+ 1024  vi role.yml
+ 1025  ansible-playbook -i inv role.yml
+ 1026  ls
+ 1027  cd geerlingguy.apache/
+ 1028  ls
+ 1029  cd tasks/
+ 1030  ls
+ 1031  cat main.yml
+
+
+============================================
+
+
+
+
+
+Tags:
+
+[root@gagan-master ~]# cat first.yaml
+---
+- name: play1 for creating user on gagan-client machine
+  hosts: gagan-client
+
+  tasks:
+    - name: 1 description for task1 for creating user
+      user: name=gagandeep state=present
+      when: ansible_distribution == "CentOS" and ansible_distribution_version == "7.7"
+      register: user_out
+      tags:
+        - prod
+        - dev
+
+    - name: 2 false task
+      debug:
+        #msg="Print this msg only if user creation is successfull"
+        var: user_out
+      ignore_errors: true
+      tags:
+        - prod
+
+    - name: 3 creating a file on next machine
+      file:
+        path: /tmp/gds
+        state: touch
+        mode: 1600
+      when: ansible_distribution == "Redhat"
+
+    - name: 4 description for task1 for creating user
+      user: name=gagandeep1 state=present
+      tags:
+        - dev
+[root@gagan-master ~]#
+
+  433  ansible-playbook first.yaml --tags dev
+  434  cat first.yaml
+  435  ansible-playbook first.yaml --tags prod
+  436  ansible-playbook first.yaml --skip-tags prod
+
+ ansible-playbook first.yaml --start-at-task "3 creating a file on next machine"
+
+
+
+
+==============================================================================================
+```
+
+
