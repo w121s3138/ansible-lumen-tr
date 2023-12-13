@@ -1532,4 +1532,188 @@ Tags:
 ==============================================================================================
 ```
 
+```
 
+
+
+
+namar : data
+
+
+
+
+
+pvt source sever (user-name/password) rsa namar=raman encryot-------------   namar  -------------------------- dest web sever /login public namar=raman decrypt
+
+
+
+
+ansible-playbook secure with username/passwrd
+
+
+
+ansible-vault -h
+1008  clear
+1009  ls
+1010  ansible-vault encrypt target.yml
+1011  cat target.yml
+1012  cat ntp.yml
+1013  clear
+1014  cat target.yml
+1015  ansible-playbook target.yml --ask-vault-pass
+1016  ansible-playbook -i inv target.yml
+1017  cat target.yml
+1018  ansible-vault decrypt target.yml
+1019  ansible-playbook -i inv target.yml
+1020  cat target.yml
+1021  ls
+1022  ansible-vault -h
+1023  clear
+1024  ansible-vault create playforvault.yml
+1025  cat playforvault.yml
+1026  ansible-vault playforvault.yml --ask-vault-pass
+1027  history
+1028  ansible-vault playforvault.yml --ask-vault-pass
+1029  ansible-playbook playforvault.yml --ask-vault-pass
+1030  clear
+1031  ls
+1032  ls -ltr
+1033  ansible-vault view playforvault.yml
+1034  ansible-vault edit playforvault.yml
+1035  ansible decrypt playforvault.yml
+1036  ansible-vault decrypt playforvault.yml
+1037  ansible-vault
+1038  ansible-vault -h
+
+
+
+
+=====================================================================
+
+
+[root@main raman]# cat jinja.yml
+---
+- hosts: all
+  name: motd file on remote servers
+  tasks:
+  - include_tasks: common_tasks.yml
+  - name: copying motd file  on remote svrs
+    template: src=/root/raman/motd.j2 dest=/etc/motd
+ 
+[root@main raman]# cat index.j2
+<html>
+<head>
+<title>Server Information</title>
+</head>
+<body>
+<h1> {{ rk }} ,this is a demo for webserver hosted on {{ ansible_hostname }} and of os : {{ ansible_os_family }} !</h1>
+</body>
+</html>
+ 
+[root@main raman]# cat lab8.1.yml
+---
+- hosts: all
+  vars:
+    httpd_package: httpd
+  tasks:
+  - include_tasks: common_tasks.yml
+  - name: install httpd package
+    package:
+      name: "{{httpd_package}}"
+      state: present
+  - name: start httpd service
+    service:
+      name: httpd
+      state: started
+  - name: config appache config port change
+    lineinfile:
+      path: /etc/httpd/conf/httpd.conf
+      regexp: "Listen 80"
+      line: "Listen 81"
+  - name: add static config to servers
+    template:
+      src: index.j2
+      dest: /var/www/html/index.html
+    notify: restart httpd
+  handlers:
+  - name: restart httpd
+    service:
+      name: httpd
+      state: restarted
+      enabled: yes
+ 
+[root@main raman]# cat motd.j2
+ 
+******************* WELCOME 2 {{ ansible_distribution }} server, {{ rk }} *******************
+IP addd of this server is  {{ ansible_default_ipv4.address }}
+The hostname is {{ ansible_fqdn }}
+[root@main raman]# cat common_tasks.yml
+    - name: Execute a command
+      command: echo 'Hello from raman to Lumen users'
+      register: my_command_output
+ 
+    - name: Set a fact based on registered variable
+      set_fact:
+        rk: "{{ my_command_output.stdout }}"
+
+=================================================
+
+
+include_tasks : whenever we have only a set of tasks file
+   
+    tags  
+
+
+-----
+
+--- for importing whole playbook :
+
+
+[root@main raman]# cat new.yml
+---
+- hosts: all
+- name: Import Task from Other Playbook
+  import_playbook: ./apache.yml
+
+
+
+for a specific task in playbook :
+
+[root@main raman]# cat new.yml
+---
+- hosts: all
+  tasks:
+  - name: install talk
+    yum:
+      name: telnet
+      state: present
+- name: Import Task from Other Playbook
+  import_playbook: ./apache.yml           # tag task with rk in apache playbook first
+
+
+ansible-playbook -i inv new.yml --tags rk
+
+
+==========================================================
+
+host1    host2  host3  host4   host5  host6   host 7  --- host 100
+
+
+tasks :1
+demo1
+demo2
+
+
+
+tasks:2
+demo1
+demo2
+
+--
+
+task 50
+
+
+==============================================================
+
+```
