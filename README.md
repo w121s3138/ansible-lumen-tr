@@ -1718,3 +1718,222 @@ task 50
 ==============================================================
 
 ```
+
+
+```
+
+root vol :
+ebs volume : block vol / partition
+
+-- add the block : 1 gb vol-0886e0d62e4d064f6
+
+
+-- lsblk on m1
+
+[root@main raman]# cat parted.yml
+- name: disk demo
+  hosts: demo1
+  tasks:
+  - name: create a partition
+    community.general.parted:
+      device: /dev/xvdf
+      number: 1
+      flags: [lvm]
+      fs_type: xfs
+      state: absent
+
+=============================================
+
+[root@main raman]# cat pub.yml
+---
+- name: mod to migrate ssh key to hosts
+  hosts: demo
+  tasks:
+  - name: copying pub key to hosts
+    authorized_key:
+      user: root
+      state: present
+      key: "{{lookup('file','/root/.ssh/id_rsa.pub')}}"
+
+
+
+=================================================================
+
+
+master : windows    ---------------  winrm ------------------mnged nodes : windows
+
+ami: Microsoft Windows Server 2019 with Desktop Experience Locale English AMI provided by Amazon
+
+t2.medium
+
+
+
+connection :
+
+local -- windows : rdp protocol
+
+
+
+
+Administrator
+
+8.XF8?Fl45edCjYholZt@5F(47
+
+
+------------------------------------------
+
+=============================================================================
+
+--  python3 installation :
+
+ python --version
+ 1048  clear
+ 1049  yum install python3
+ 1050  python --version
+ 1051  pip
+ 1052  pip3
+ 1053  clear
+
+
+-- replaced python2 interpretor to python3
+
+cd  /usr/bin/python3
+ 1081  cd  /var/lib/alternatives/
+ 1082  ls
+ 1083  alternatives --install /usr/bin/python python /usr/bin/python3 1
+ 1084  ls
+ 1085  alternatives --set python /usr/bin/python3
+ 1086  python --version
+ 1087  ls
+ 1088  python --version
+
+
+
+-- created a virtual env for my latest ansible working on python3:
+
+ pip3 install virtualenv
+ 1099  python3 -m virtulenv env
+ 1100  python3 -m virtualenv env
+ 1101  ls
+ 1102  source  env/bin/activate
+ 1103  ls
+ 1104  pip3
+ 1057  python3 -m pip install --upgrade pip
+ 1105  pip3 install pywinrm
+ 1106  pip3 install ansible (latest version)
+ 1107  ansible --version
+ 1108  pip3 install pywinrm
+
+
+##
+upgrade ansible
+python3 : pip3
+install pywinrm :
+for ansible to connect from main (linux) ----- mnged node (win) : winrm
+##
+
+----------------------------------
+sript :
+
+# Enable PowerShell remoting
+Enable-PSRemoting -Force
+
+# Set WinRM service startup type to automatic
+Set-Service WinRM -StartupType 'Automatic'
+
+# Configure WinRM Service
+Set-Item -Path WSMan:\localhost\Service\Auth\Certificate -Value $true
+Set-Item -Path 'WSMan:\localhost\Service\AllowUnencrypted' -Value $true
+Set-Item -Path 'WSMan:\localhost\Service\Auth\Basic' -Value $true
+Set-Item -Path 'WSMan:\localhost\Service\Auth\CredSSP' -Value $true
+
+
+#To delete an existing WinRM listener with Address=* and Transport=HTTPS, you can use the following command:
+winrm delete winrm/config/Listener?Address=*+Transport=HTTPS
+
+
+# Create a self-signed certificate and set up an HTTPS listener
+$cert = New-SelfSignedCertificate -DnsName ec2-44-203-196-218.compute-1.amazonaws.com -CertStoreLocation "cert:\LocalMachine\My"
+
+winrm create winrm/config/Listener?Address=*+Transport=HTTPS "@{Hostname=`"ec2-44-203-196-218.compute-1.amazonaws.com`";CertificateThumbprint=`"$($cert.Thumbprint)`"}"
+
+
+# Create a firewall rule to allow WinRM HTTPS inbound
+New-NetFirewallRule -DisplayName "Allow WinRM HTTPS" -Direction Inbound -LocalPort 5986 -Protocol TCP -Action Allow
+
+# Configure TrustedHosts
+Set-Item WSMan:\localhost\Client\TrustedHosts -Value "*" -Force
+
+# Set LocalAccountTokenFilterPolicy
+New-ItemProperty -Name LocalAccountTokenFilterPolicy -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System -PropertyType DWord -Value 1 -Force
+
+# Set Execution Policy to Unrestricted
+Set-ExecutionPolicy Unrestricted -Force
+
+# Restart the WinRM service
+Restart-Service WinRM
+
+# List the WinRM listeners
+winrm enumerate winrm/config/Listener
+
+------------------------------------------------------
+
+inv :
+
+[demo]
+demo1
+
+[win]
+44.203.196.218
+
+[win:vars]
+ansible_user=Administrator
+ansible_password="8.XF8?Fl45edCjYholZt@5F(47"
+ansible_connection=winrm
+ansible_winrm_transport=basic
+ansible_winrm_server_cert_validation=ignore
+
+
+=========================
+
+command :
+ansible win -m win_ping -i inv
+
+
+==========================================================
+
+(env) [root@main raman]# cat win1.yml
+---
+- name: installation of pkg
+  hosts: all
+  gather_facts: yes
+  tasks:
+  - name: block run
+    block:
+    - name: installaing telnet package
+      yum: name=telnet state=present
+      register: result
+    - name: printoutput
+      debug: var=result
+    when: ansible_distribution == 'CentOS'
+    ignore_errors: true
+  - name: windows run
+    block:
+    - name: install iis
+      win_feature:
+        name:
+        - Web-Server
+        - Web-Common-Http
+        state: present
+    - name: default-website-index
+      win_copy:
+        dest: "C:\\inetpub\\wwwroot\\index.html"
+        content: "Welcome to windows ; configured via ansible"
+    when: ansible_os_family == "Windows"
+
+
+==========================================================================
+
+
+
+```
